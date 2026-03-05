@@ -9,17 +9,14 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = "my-jenkins-bucket0203"
+    bucket  = "jenkins-bucxx"
     key     = "terraform.tfstate"
-    region  = "ap-south-1"   # SAME AS PROVIDER
+    region  = "ap-south-1"
     encrypt = true
   }
 }
 
-#################################
-# PROVIDER
-#################################
-
+# Provider
 provider "aws" {
   region = "ap-south-1"
 }
@@ -39,13 +36,9 @@ data "aws_subnets" "default" {
   }
 }
 
-#################################
-# VARIABLE
-#################################
-
 variable "cluster_name" {
   type    = string
-  default = "my-cluster-23"
+  default = "my-cluster-19"
 }
 
 #################################
@@ -53,7 +46,7 @@ variable "cluster_name" {
 #################################
 
 resource "aws_iam_role" "eks_cluster_role" {
-  name = "eks-cluster-role-23"
+  name = "eks-cluster-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -75,7 +68,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 #################################
 
 resource "aws_iam_role" "node_role" {
-  name = "eks-node-role-23"
+  name = "eks-node-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -87,19 +80,15 @@ resource "aws_iam_role" "node_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "node_worker_policy" {
-  role       = aws_iam_role.node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
+resource "aws_iam_role_policy_attachment" "node_policies" {
+  count = 3
+  role  = aws_iam_role.node_role.name
 
-resource "aws_iam_role_policy_attachment" "node_cni_policy" {
-  role       = aws_iam_role.node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "node_ecr_policy" {
-  role       = aws_iam_role.node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  policy_arn = element([
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  ], count.index)
 }
 
 #################################
@@ -125,9 +114,11 @@ resource "aws_eks_cluster" "mycluster" {
 
 resource "aws_eks_node_group" "nodegroup" {
   cluster_name    = aws_eks_cluster.mycluster.name
-  node_group_name = "myb23-node-group"
+  node_group_name = "myb19-node-group"
   node_role_arn   = aws_iam_role.node_role.arn
   subnet_ids      = data.aws_subnets.default.ids
+
+  instance_types = ["t3.micro"]   # ✅ Changed
 
   scaling_config {
     desired_size = 2
@@ -135,12 +126,8 @@ resource "aws_eks_node_group" "nodegroup" {
     max_size     = 3
   }
 
-  instance_types = ["t3.medium"]
-
   depends_on = [
-    aws_iam_role_policy_attachment.node_worker_policy,
-    aws_iam_role_policy_attachment.node_cni_policy,
-    aws_iam_role_policy_attachment.node_ecr_policy
+    aws_iam_role_policy_attachment.node_policies
   ]
 }
 
