@@ -118,7 +118,7 @@ resource "aws_eks_node_group" "nodegroup" {
   node_role_arn   = aws_iam_role.node_role.arn
   subnet_ids      = data.aws_subnets.default.ids
 
-  instance_types = ["t3.micro"]   # ✅ Changed
+  instance_types = ["t3.micro"]   
 
   scaling_config {
     desired_size = 2
@@ -142,3 +142,4 @@ output "cluster_name" {
 output "cluster_endpoint" {
   value = aws_eks_cluster.mycluster.endpoint
 }
+
