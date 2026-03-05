@@ -8,15 +8,15 @@ terraform {
     }
   }
 
+  terraform {
   backend "s3" {
-    bucket  = "jenkins-bucxx"
+    bucket  = "harshada-jenkins-state-19"
     key     = "terraform.tfstate"
     region  = "ap-south-1"
     encrypt = true
   }
 }
 
-# Provider
 provider "aws" {
   region = "ap-south-1"
 }
